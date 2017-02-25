@@ -38,43 +38,23 @@ def softmax_loss_naive(W, X, y, reg):
         # Compute vector of scores
         f_i = X[i].dot(W)
         
-
         out = softmax(f_i)
 
-        diff = np.exp(out - np.max(out))
-
-        sum_diff = np.sum(diff)
-
-        score = diff[y[i]]/sum_diff
-
-        loss += - np.log(score)
-
-        f_i -= np.max(f_i)
+        sum_out = np.sum(out)
         
-        # Compute gradient
-        # Here we are computing the contribution to the inner sum for a given i.
+        loss += - np.log(out[y[i]])
+
         for k in range(num_classes):
-            #print np.exp(f_i[k])/(np.sum(np.exp(f_i)))
-            #print out[y[k]]
-            #print ""
-            score_k = np.exp(f_i[k])/(np.sum(np.exp(f_i)))
-            #print score_k
-            #print score_k
-            #print out[k]
-                                      
+
+            score_k = out[k]/sum_out                              
             dW[:,k] += X[i]*(-1*(k==y[i]) + score_k)
     
     loss /= num_train
     loss += 0.5 * reg * np.sum(W * W)
     dW /= num_train
     dW += reg*W
-    #############################################################################
-    #                          END OF YOUR CODE                                 #
-    #############################################################################
 
-    #print dW
     return loss, dW
-
 
 def softmax_loss_vectorized(W, X, y, reg):
     """
@@ -88,30 +68,27 @@ def softmax_loss_vectorized(W, X, y, reg):
     num_examples = X.shape[0]
     scores = np.dot(X, W)
     
-    probs = softmax(scores)
-    corect_logprobs = -np.log(probs[range(num_examples),y])
+    out = softmax(scores)
     
-    data_loss = np.sum(corect_logprobs)/num_examples
-    reg_loss = 0.5*reg*np.sum(W*W)
+    score_i = out[xrange(num_examples), y]
+    loss = np.sum(-np.log(score_i))
+
+    out[xrange(num_examples), y] -= 1
+    dW = np.dot(X.T,out)
     
-    loss = data_loss + reg_loss
-    
-    print loss
-    dscores = probs
-    dscores[range(num_examples),y] -= 1
-    dscores /= num_examples
-    dW = np.dot(X.T, dscores)
-    
+
     #############################################################################
     # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
     # Store the loss in loss and the gradient in dW. If you are not careful     #
     # here, it is easy to run into numeric instability. Don't forget the        #
     # regularization!                                                           #
     #############################################################################
-    pass
     #############################################################################
     #                          END OF YOUR CODE                                 #
     #############################################################################
+    loss /= num_examples
+    loss += 0.5 * reg * np.sum(W * W)
+    dW /= num_examples
     dW += reg*W
     
     return loss, dW
