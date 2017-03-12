@@ -161,7 +161,50 @@ def batchnorm_forward(x, gamma, beta, bn_param):
   running_var = bn_param.get('running_var', np.zeros(D, dtype=x.dtype))
 
   out, cache = None, None
+  num_train = x.shape[0]
+  batch_size = num_train/2
+
+  out = x.copy()
+  cache = {}
   if mode == 'train':
+    
+    #Taking a minibatch of data
+    choices = np.random.choice(num_train, (batch_size,), replace=False)
+    X_batch = x[choices]
+    
+   #Using the computation graph to store the cache at each step
+    
+    # X(a) -------> [Subtract](c) ---------------------------------------------------------------> [Multiply_1] (h)
+    #  \       /           \                                                                            /     \
+    #   --> [Mean](b)       --> [(Sum_Squares)/N] (d) ->[Add Epsilon] (e) ->[Sqrt] (f) -> [Invert](g) --      \
+    #                                                                                                          \
+    # gamma ------------------------------------------------------------------------------------------->[Multiply_2] (i)
+    #                                                                                                           /
+    #                                                                                                          /  
+    # beta --------------------------------------------------------------------------------------------->[Addition] (j)
+    #                                                                                                         |
+    #                                                                                                         |
+    #                                                                                                        |
+    #                                                                                            (dout)[BatchNorm Output]
+    b = X_batch.mean(axis=0)   # Same as sample mean
+    c = x - b
+    d = np.sum(np.square(c))/N # Same as sample variance
+    e = d + eps
+    f = np.sqrt(e)
+    g = 1/f
+    h = c * g
+    i = h * gamma
+    out  = i + beta
+    
+    """
+    cache['b'] = X_batch_mean
+    cache['d'] = X_batch_var
+    cache['h'] = x_hat
+    cache['x'] = x
+    cache['gamma'] = gamma
+    cache['beta'] = beta
+    cache['eps'] = eps
+    """
     #############################################################################
     # TODO: Implement the training-time forward pass for batch normalization.   #
     # Use minibatch statistics to compute the mean and variance, use these      #
@@ -175,7 +218,9 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # the momentum variable to update the running mean and running variance,    #
     # storing your result in the running_mean and running_var variables.        #
     #############################################################################
-    pass
+    running_mean = momentum * running_mean + (1 - momentum) * b
+    running_var = momentum * running_var + (1 - momentum) * d
+    
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -186,7 +231,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # and shift the normalized data using gamma and beta. Store the result in   #
     # the out variable.                                                         #
     #############################################################################
-    pass
+    out = (out - running_mean)/(np.sqrt(running_var + eps))
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -198,7 +243,6 @@ def batchnorm_forward(x, gamma, beta, bn_param):
   bn_param['running_var'] = running_var
 
   return out, cache
-
 
 def batchnorm_backward(dout, cache):
   """
@@ -222,7 +266,55 @@ def batchnorm_backward(dout, cache):
   # TODO: Implement the backward pass for batch normalization. Store the      #
   # results in the dx, dgamma, and dbeta variables.                           #
   #############################################################################
-  pass
+  sample_mean = cache['mean']
+  sample_variance = cache['variance']
+  x_hat = cache['x_hat']
+  gamma = cache['gamma']
+  beta = cache['beta']
+  eps = cache['eps']
+  x = cache['x']
+  N = x.shape[0]
+    
+  #Using the computation graph to find the gradient at each node backwards
+    
+  # X(a) -------> [Subtract](c) ---------------------------------------------------------------> [Multiply_1] (h)
+  #  \       /           \                                                                            /     \
+  #   --> [Mean](b)       --> [(Sum_Squares)/N] (d) ->[Add Epsilon] (e) ->[Sqrt] (f) -> [Invert](g) --      \
+  #                                                                                                          \
+  # gamma ------------------------------------------------------------------------------------------->[Multiply_2] (i)
+  #                                                                                                           /
+  #                                                                                                          /  
+  # beta --------------------------------------------------------------------------------------------->[Addition] (j)
+  #                                                                                                         |
+  #                                                                                                         |
+  #                                                                                                        |
+  #                                                                                            (dout)[BatchNorm Output]
+    
+  """
+  dbeta = np.sum(dout, axis=0)
+  
+  di = dout
+  
+  dgamma = np.sum(x_hat*di, axis = 0)
+ 
+  dh = gamma * di
+    
+  dg = np.sum((x-sample_mean)*dh, axis = 0)
+   
+  df = -1/2.0 * () * dg
+    
+  di = np.sum((dj) * dx_1, axis = 0)
+  dh =
+  df =
+  df =
+  de =
+  dd =
+  dc =
+  db =
+  da=
+  d
+  """
+  return dx, dgamma, dbeta
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
